@@ -4,7 +4,7 @@ require 'kitty'
 
 class TestTrip < Test::Unit::TestCase
   def setup
-    @trip = Account::Trip.new('test')
+    @trip = Kitty::Trip.new('test')
   end
   
   def test_initialize_trip

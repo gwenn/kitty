@@ -1,6 +1,6 @@
 # == Synopsis
 #
-# Helps to keep Group account.
+# Helps to keep Group accounting.
 # Original idea came from {Christian Neukirchen}[http://chneukirchen.org/blog/archive/2005/05/scripting-for-runaways.html].
 #
 # == Usage
@@ -28,7 +28,7 @@
 #
 #   Gwenn.prefer_to_pay_back Medo
 #
-#   cashing_up!
+#   balance
 #
 # == Author
 # El Barto
@@ -38,7 +38,7 @@
 # Licensed under the same terms as Ruby.
 require 'set'
 
-module Account
+module Kitty
   module PersonSet
     attr_reader :persons
     include Enumerable
@@ -48,7 +48,7 @@ module Account
       @persons.merge(person.to_set)
       self
     end
-    alias << add
+    alias :<< :add
 
     def each
       @persons.each { |o| yield(o) }
@@ -302,7 +302,7 @@ module Account
     #end
 
     def trip(name, *persons)
-      trip = singleton_class.const_set(name, Account::Trip.new(name))
+      trip = singleton_class.const_set(name, Kitty::Trip.new(name))
       singleton_class.const_set(:TRIP, trip)
       persons.each do |person|
         person(person)
@@ -311,15 +311,15 @@ module Account
     end
 
     def person(name, period = nil)
-      person = singleton_class.const_set(name, Account::Person.new(name, period))
+      person = singleton_class.const_set(name, Kitty::Person.new(name, period))
       current_trip << person
       person
     end
 
     def group(name, *persons)
-      group = singleton_class.const_set(name, Account::Group.new(name))
+      group = singleton_class.const_set(name, Kitty::Group.new(name))
       persons.collect! do |person|
-        if person.is_a?(Account::Person)
+        if person.is_a?(Kitty::Person)
           person
         else
           person(person)
@@ -329,9 +329,10 @@ module Account
       group
     end
 
-    def cashing_up!
+    def balance
       current_trip.balance
     end
+    alias :ckeckout :balance
 
     private
     def current_trip
@@ -375,7 +376,7 @@ if __FILE__ == $0
  
   unless ARGV.empty?
     ARGV.each do |arg|
-      ctx = Account::Trick.new
+      ctx = Kitty::Trick.new
       File.open(arg) do |file|
         ctx.instance_eval(file.read, arg, 1)
       end
