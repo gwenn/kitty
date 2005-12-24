@@ -37,6 +37,7 @@
 # Copyright (c) 2005 El Barto.
 # Licensed under the same terms as Ruby.
 require 'set'
+require 'date'
 
 module Kitty
   module PersonSet
@@ -164,7 +165,7 @@ module Kitty
     end
   end
 
-  class Group
+  class Group # FIXME add @period ?
     attr_reader :name
     include PersonSet
 
