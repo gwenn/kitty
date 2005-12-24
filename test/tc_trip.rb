@@ -1,27 +1,38 @@
-$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
-require 'test/unit'
-require 'kitty'
+require 'tc_person_set'
+require 'date'
 
-class TestTrip < Test::Unit::TestCase
-  def setup
-    @trip = Kitty::Trip.new('Test')
-  end
+module TestKitty
+  class TestTrip < TestPersonSet
+    def setup
+      @trip = Kitty::Trip.new('Test')
+      @set = @trip
+    end
 
-  def test_initialize_trip
-    assert_equal('Test', @trip.name)
-    assert_nil(@trip.period)
-  end
+    def test_initial_state
+      super
+      assert_equal('Test', @trip.name)
+      assert_nil(@trip.period)
+    end
 
-  def test_no_name
-    assert_raise(ArgumentError) {
-      Kitty::Trip.new(nil)
-    }
-    assert_raise(ArgumentError) {
-      Kitty::Trip.new('')
-    }
-  end
+    def test_period
+      period = Date.new(2005, 9, 10)..Date.new(2005, 9, 25)
+      @trip = Kitty::Trip.new('Test', period)
+      assert_equal('Test', @trip.name)
+      assert_same(period, @trip.period)
+    end
 
-  def teardown
-    @trip = nil
+    def test_no_name
+      assert_raise(ArgumentError) {
+        Kitty::Trip.new(nil)
+      }
+      assert_raise(ArgumentError) {
+        Kitty::Trip.new('')
+      }
+    end
+
+    def teardown
+      super
+      @trip = nil
+    end
   end
 end
