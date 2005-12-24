@@ -4,27 +4,27 @@
 # Original idea came from {Christian Neukirchen}[http://chneukirchen.org/blog/archive/2005/05/scripting-for-runaways.html].
 #
 # == Usage
-#    ruby kitty.rb [-h | --help] trip_data
+#    ruby kitty.rb [-h | --help] trip_data...
 #
 # trip_data::
 #    A file describing the expenses made for one trip.
 #
-#   trip "Neons"
+#   trip 'Neons'
 #
-#   group "Break", "Bou", "Fred", "Sosoph"
-#   group "Advantime", "Gwenn", "Medo", "Seb"
+#   group 'Break', 'Bou', 'Fred', 'Sosoph'
+#   group 'Advantime', 'Gwenn', 'Medo', 'Seb'
 #
-#   Seb.pay 45.00, :purpose => "Essence", :include => Advantime
-#   Sosoph.pay 40.00, :purpose => "Peage", :include => Break
-#   Fred.pay 50.00, :purpose => "Essence", :include => Break
-#   Medo.pay 37.00, :purpose => "Resto", :exclude => [Fred, Gwenn]
-#   Fred.pay 70.00, :purpose => "Makina", :exclude => Gwenn
-#   Sosoph.pay 6.00, :purpose => "Makina", :exclude => Gwenn
+#   Seb.pay 45.00, :purpose => 'Essence', :include => Advantime
+#   Sosoph.pay 40.00, :purpose => 'Peage', :include => Break
+#   Fred.pay 50.00, :purpose => 'Essence', :include => Break
+#   Medo.pay 37.00, :purpose => 'Resto', :exclude => [Fred, Gwenn]
+#   Fred.pay 70.00, :purpose => 'Makina', :exclude => Gwenn
+#   Sosoph.pay 6.00, :purpose => 'Makina', :exclude => Gwenn
 #
-#   Bou.pay 57.00, "Nourriture"
-#   Gwenn.pay 16.00, "Nourriture"
-#   Medo.pay 70.00, "Nourriture"
-#   Seb.pay 14.00, "Nourriture"
+#   Bou.pay 57.00, 'Nourriture'
+#   Gwenn.pay 16.00, 'Nourriture'
+#   Medo.pay 70.00, 'Nourriture'
+#   Seb.pay 14.00, 'Nourriture'
 #
 #   Gwenn.prefer_to_pay_back Medo
 #
@@ -42,7 +42,7 @@ module Kitty
   module PersonSet
     attr_reader :persons
     include Enumerable
-    
+
     def add(*person)
       @persons ||= Set.new
       @persons.merge(person.to_set)
@@ -55,25 +55,26 @@ module Kitty
       self
     end
   end
-  
+
   class Trip
     attr_reader :name
     attr_reader :period
     include PersonSet
-    
+
     def initialize(name, period = nil)
+      raise(ArgumentError, 'Illegal nil or empty name', caller) if name.nil? || name.empty?
       @name = name
       @period = period
     end
 
     def balance
-      raise "No person toke part to these trip!" if @persons.nil? || @persons.empty?
+      raise('No person toke part to these trip!') if @persons.nil? || @persons.empty?
 
       balancer = Balancer.new
       accept(balancer)
       balances = balancer.balances
       total = balancer.total
-      
+
       display_details(balances, total)
 
       payments = []
@@ -91,16 +92,16 @@ module Kitty
               end
             end
           else
-            puts "Pay back constraint for %s ignored!" % [person.name]
+            puts('Pay back constraint for %s ignored!' % [person.name])
           end
           balances[person] = balance
         end
       end
-      
+
       balances.reject do |person, balance|
         balance.zero?
       end
-      
+
       donors, receivers = balances.partition do |person, balance|
         balance > 0
       end
@@ -136,28 +137,28 @@ module Kitty
       end
     end
 
-    protected 
+    protected
     def display_details(balances, total)
-      puts "Trip: %s" % @name
-      puts "  Total: %.2f" % [total]
+      puts('Trip: %s' % @name)
+      puts('  Total: %.2f' % [total])
       puts
       result = balances.sort do |a, b|
         a[0].name <=> b[0].name
       end
       check_sum = 0.0
       result.each do |r|
-        puts "  %s: %.2f" % [r[0].name, r[1]]
+        puts('  %s: %.2f' % [r[0].name, r[1]])
         check_sum += r[1]
       end
-      
+
       puts
-      puts "  Balance: %.2f" % [check_sum.abs]
+      puts('  Balance: %.2f' % [check_sum.abs])
       puts
     end
 
     def display_payments(payments)
       payments.each do |payment|
-        puts "  %s -> %s: %.2f" % [payment[0].name, payment[1].name, payment[2]]
+        puts('  %s -> %s: %.2f' % [payment[0].name, payment[1].name, payment[2]])
       end
       puts
     end
@@ -166,25 +167,27 @@ module Kitty
   class Group
     attr_reader :name
     include PersonSet
-    
+
     def initialize(name)
+      raise(ArgumentError, 'Illegal nil or empty name', caller) if name.nil? || name.empty?
       @name = name
     end
   end
-  
+
   class Person
     attr_reader :name
     attr_reader :payments
     attr_accessor :period
     attr_reader :pay_back_persons
-    
+
     def initialize(name, period = nil)
+      raise(ArgumentError, 'Illegal nil or empty name', caller) if name.nil? || name.empty?
       @name = name
       @period = period
       @payments = []
     end
 
-    def pay(amount, desc = "stuff")
+    def pay(amount, desc = 'stuff')
       @payments << Payment.new(self, amount, desc)
       self
     end
@@ -194,7 +197,7 @@ module Kitty
       self
     end
 
-    def prefer_to_pay_back(*persons)
+    def prefer_to_pay_back(*persons) # FIXME destructive method
       @pay_back_persons = persons
     end
 
@@ -209,7 +212,7 @@ module Kitty
   class Payment
     attr_reader :payer, :amount, :purpose, :date
     attr_reader :included_persons, :excluded_persons
-    
+
     def initialize(payer, amount, desc)
       @payer = payer
       @amount = amount
@@ -221,7 +224,7 @@ module Kitty
           if hash[:include].respond_to?(:each)
             @included_persons = Set.new(hash[:include])
           else
-            @included_persons = Set.new()
+            @included_persons = Set.new
             @included_persons << hash[:include]
           end
         else
@@ -231,7 +234,7 @@ module Kitty
           if hash[:exclude].respond_to?(:each)
             @excluded_persons = Set.new(hash[:exclude])
           else
-            @excluded_persons = Set.new()
+            @excluded_persons = Set.new
             @excluded_persons << hash[:exclude]
           end
         else
@@ -253,7 +256,7 @@ module Kitty
   class Balancer
     attr_reader :balances # { person => balance }
     attr_reader :total
-    
+
     def analyze_trip(trip)
       @trip = trip
       init_balances(trip)
@@ -281,7 +284,7 @@ module Kitty
           !(person.period.nil?) and !(person.period.include?(payment.date))
         end
       end
-      raise "No Concerned person for #{payment}!" if concerned_persons.empty?
+      raise("No Concerned person for #{payment}!") if concerned_persons.empty?
       @balances[payment.payer] += payment.amount
       share = payment.amount / concerned_persons.size
       concerned_persons.each do |person|
@@ -330,15 +333,15 @@ module Kitty
     end
 
     def balance
-      current_trip.balance
+      current_trip.balance()
     end
     alias :ckeckout :balance
 
     private
     def current_trip
       unless singleton_class.const_defined?(:TRIP)
-        warn "No trip defines! A default one is created." 
-        trip("One trip")
+        warn('No trip defines! A default one is created.')
+        trip('One trip')
       end
       singleton_class.const_get(:TRIP)
     end
@@ -355,7 +358,7 @@ module Kitty
     include DSL
 
     def Trick.const_missing(sym)
-      warn "Constante '%s' was not declared! The corresponding person is created." % sym
+      warn("Constante '%s' was not declared! The corresponding person is created." % sym)
       person(sym)
     end
   end
@@ -364,16 +367,16 @@ end
 if __FILE__ == $0
   require 'optparse'
   require 'rdoc/usage'
-  
+
   opts = OptionParser.new
   opts.on('-h', '--help') { RDoc::usage }
   begin
     opts.parse(ARGV)
   rescue => error
-    puts error.message
+    puts(error.message)
     RDoc::usage('Usage')
   end
- 
+
   unless ARGV.empty?
     ARGV.each do |arg|
       ctx = Kitty::Trick.new
@@ -382,9 +385,9 @@ if __FILE__ == $0
       end
     end
   else
-    puts "Missing trip data"
+    puts('Missing trip data')
     RDoc::usage('Usage')
   end
 
-  at_exit { puts "ByeBye..." }
+  at_exit { puts('ByeBye...') }
 end
