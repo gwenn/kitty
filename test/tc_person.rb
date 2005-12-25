@@ -36,17 +36,17 @@ module TestKitty
 
     def test_pay
       @person.pay(10)
-      assert_same(1, @person.payments.length)
+      assert_equal(1, @person.payments.length)
       payment = @person.payments[0]
       assert_same(@person, payment.payer)
-      assert_same(10, payment.amount)
+      assert_equal(10, payment.amount)
       assert_equal('stuff', payment.purpose)
 
       @person.pay(5, 'misc')
-      assert_same(2, @person.payments.length)
+      assert_equal(2, @person.payments.length)
       payment = @person.payments[1]
       assert_same(@person, payment.payer)
-      assert_same(5, payment.amount)
+      assert_equal(5, payment.amount)
       assert_equal('misc', payment.purpose)
 
       @person.pay(1).pay(2)
@@ -59,7 +59,7 @@ module TestKitty
       assert_same(1, @person.payments.length)
       payment = @person.payments[0]
       assert_same(@person, payment.payer)
-      assert_same(10, payment.amount)
+      assert_equal(10, payment.amount)
       assert_equal('misc', payment.purpose)
       assert_equal(2, payment.included_persons.length)
       assert(payment.included_persons.include?(receiver0))
@@ -71,7 +71,7 @@ module TestKitty
       donor0 = Kitty::Person.new('donor0')
       donor1 = Kitty::Person.new('donor1')
       @person.prefer_to_pay_back(donor0, donor1)
-      assert_same(2, @person.pay_back_persons.length)
+      assert_equal(2, @person.pay_back_persons.length)
       assert(@person.pay_back_persons.include?(donor0))
       assert(@person.pay_back_persons.include?(donor1))
     end
