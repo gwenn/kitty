@@ -27,6 +27,7 @@
 #   Seb.pay 14.00, 'Nourriture'
 #
 #   Gwenn.prefer_to_pay_back Medo
+#   Sosoph.prefer_to_pay_back Fred
 #
 #   balance
 #
@@ -298,15 +299,15 @@ module Kitty
 
       # To make sure receivers with low balance (near zero) pay as few donors as possible,
       # receivers with low balance are treated first and pay donors with high balance.
-      donors.sort! do |x, y|
-        x[1] <=> y[1]
-      end
-
       receivers.sort! do |x, y|
         y[1] <=> x[1]
       end
 
       receivers.each do |receiver|
+        donors.sort! do |x, y|
+          y[1] <=> x[1]
+        end
+
         donors.each do |donor|
           unless receiver[1].zero? || donor[1].zero?
             repayment = [receiver[1].abs, donor[1]].min
