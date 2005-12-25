@@ -41,18 +41,28 @@ require 'date'
 
 module Kitty
   module PersonSet
-    attr_reader :persons
     include Enumerable
 
-    def add(*person)
+    def persons
       @persons ||= Set.new
-      @persons.merge(person.to_set)
+    end
+
+    def add(*persons)
+      persons.each do |elt|
+        if elt.respond_to?(:each)
+          self.persons.merge(elt)
+        else
+          self.persons.add(elt)
+        end
+      end
       self
     end
     alias :<< :add
 
     def each
-      @persons.each { |o| yield(o) }
+      persons.each do |person|
+        yield(person)
+      end
       self
     end
   end
@@ -73,62 +83,14 @@ module Kitty
 
       balancer = Balancer.new
       accept(balancer)
-      balances = balancer.balances
-      total = balancer.total
+      balances = balancer.balances # { person => balance }
 
-      display_details(balances, total)
+      display_details(balances, balancer.total)
 
-      payments = []
-      # If some persons prefer to pay back other ones:
-      balances.each do |person, balance|
-        unless person.pay_back_persons.nil? || person.pay_back_persons.empty?
-          if balance < 0
-            person.pay_back_persons.each do |pay_back_person|
-              pay_back_balance = balances[pay_back_person]
-              if pay_back_balance > 0
-                payment = [balance.abs, pay_back_balance].min
-                balance += payment
-                balances[pay_back_person] -= payment
-                payments << [person, pay_back_person, payment]
-              end
-            end
-          else
-            puts('Pay back constraint for %s ignored!' % [person.name])
-          end
-          balances[person] = balance
-        end
-      end
+      apportioner = Apportioner.new
+      repayments = apportioner.distribute(balances.dup)
 
-      balances.reject do |person, balance|
-        balance.zero?
-      end
-
-      donors, receivers = balances.partition do |person, balance|
-        balance > 0
-      end
-
-      # To make sure receivers with low balance (near zero) pay as few donors as possible,
-      # receivers with low balance are treated first and pay donors with high balance.
-      donors.sort! do |x, y|
-        x[1] <=> y[1]
-      end
-
-      receivers.sort! do |x, y|
-        y[1] <=> x[1]
-      end
-
-      receivers.each do |receiver|
-        donors.each do |donor|
-          unless receiver[1].zero? || donor[1].zero?
-            payment = [receiver[1].abs, donor[1]].min
-            receiver[1] += payment
-            donor[1] -= payment
-            payments << [receiver[0], donor[0], payment]
-          end
-        end
-      end
-
-      display_payments(payments)
+      display_repayments(repayments)
     end
 
     def accept(analyzer)
@@ -157,9 +119,9 @@ module Kitty
       puts
     end
 
-    def display_payments(payments)
-      payments.each do |payment|
-        puts('  %s -> %s: %.2f' % [payment[0].name, payment[1].name, payment[2]])
+    def display_repayments(repayments)
+      repayments.each do |repayment|
+        puts('  %s -> %s: %.2f' % [repayment[0].name, repayment[1].name, repayment[2]])
       end
       puts
     end
@@ -177,7 +139,6 @@ module Kitty
 
   class Person
     attr_reader :name
-    attr_reader :payments
     attr_accessor :period
     attr_reader :pay_back_persons
 
@@ -185,16 +146,19 @@ module Kitty
       raise(ArgumentError, 'Illegal nil or empty name', caller) if name.nil? || name.empty?
       @name = name
       @period = period
-      @payments = []
+    end
+
+    def payments
+      @payments ||= []
     end
 
     def pay(amount, desc = 'stuff')
-      @payments << Payment.new(self, amount, desc)
+      payments << Payment.new(self, amount, desc)
       self
     end
 
     def lend(amount, purpose, *persons)
-      @payments << Payment.new(self, amount, { :purpose => purpose, :exclude => self, :include => persons })
+      payments << Payment.new(self, amount, { :purpose => purpose, :exclude => self, :include => persons })
       self
     end
 
@@ -204,7 +168,7 @@ module Kitty
 
     def accept(analyzer)
       analyzer.analyze_person(self)
-      @payments.each do |payment|
+      payments.each do |payment|
         payment.accept(analyzer)
       end
     end
@@ -301,6 +265,61 @@ module Kitty
     end
   end
 
+  class Apportioner
+    def distribute(balances) # { person => balance }
+      repayments = [] # [ receiver, donor, repayment ]
+      # If some persons prefer to pay back other ones:
+      balances.each do |person, balance|
+        unless person.pay_back_persons.nil? || person.pay_back_persons.empty?
+          if balance < 0
+            person.pay_back_persons.each do |pay_back_person|
+              pay_back_balance = balances[pay_back_person]
+              if pay_back_balance > 0
+                repayment = [balance.abs, pay_back_balance].min
+                balance += repayment
+                balances[pay_back_person] -= repayment
+                repayments << [person, pay_back_person, repayment]
+              end
+            end
+          else
+            puts('Pay back constraint for %s ignored!' % [person.name])
+          end
+          balances[person] = balance
+        end
+      end
+
+      balances.reject! do |person, balance|
+        balance.zero?
+      end
+
+      donors, receivers = balances.partition do |person, balance|
+        balance > 0
+      end
+
+      # To make sure receivers with low balance (near zero) pay as few donors as possible,
+      # receivers with low balance are treated first and pay donors with high balance.
+      donors.sort! do |x, y|
+        x[1] <=> y[1]
+      end
+
+      receivers.sort! do |x, y|
+        y[1] <=> x[1]
+      end
+
+      receivers.each do |receiver|
+        donors.each do |donor|
+          unless receiver[1].zero? || donor[1].zero?
+            repayment = [receiver[1].abs, donor[1]].min
+            receiver[1] += repayment
+            donor[1] -= repayment
+            repayments << [receiver[0], donor[0], repayment]
+          end
+        end
+      end
+      repayments
+    end
+  end
+
   module DSL
     #def DSL.extended(obj) FIXME
     #end
@@ -336,7 +355,7 @@ module Kitty
     def balance
       current_trip.balance()
     end
-    alias :ckeckout :balance
+    alias :checkout :balance
 
     private
     def current_trip
