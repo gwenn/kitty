@@ -9,7 +9,7 @@ module TestKitty
       @trip = Kitty::Trip.new('Test')
       @person0 = Kitty::Person.new('Person0', Date.new(2005, 9, 10)..Date.new(2005, 9, 25))
       @person1 = Kitty::Person.new('Person1')
-      @person2 = Kitty::Person.new('Person1')
+      @person2 = Kitty::Person.new('Person2')
       @balancer = Kitty::Balancer.new
     end
 
