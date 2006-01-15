@@ -14,17 +14,17 @@
 #   group 'Break', 'Bou', 'Fred', 'Sosoph'
 #   group 'Advantime', 'Gwenn', 'Medo', 'Seb'
 #
-#   Seb.pay 45.00, :purpose => 'Essence', :include => Advantime
-#   Sosoph.pay 40.00, :purpose => 'Peage', :include => Break
-#   Fred.pay 50.00, :purpose => 'Essence', :include => Break
-#   Medo.pay 37.00, :purpose => 'Resto', :exclude => [Fred, Gwenn]
-#   Fred.pay 70.00, :purpose => 'Makina', :exclude => Gwenn
-#   Sosoph.pay 6.00, :purpose => 'Makina', :exclude => Gwenn
+#   Seb.pay 45, :purpose => 'Essence', :include => Advantime
+#   Sosoph.pay 40, :purpose => 'Peage', :include => Break
+#   Fred.pay 50, :purpose => 'Essence', :include => Break
+#   Medo.pay 37, :purpose => 'Resto', :exclude => [Fred, Gwenn]
+#   Fred.pay 70, :purpose => 'Makina', :exclude => Gwenn
+#   Sosoph.pay 6, :purpose => 'Makina', :exclude => Gwenn
 #
-#   Bou.pay 57.00, 'Nourriture'
-#   Gwenn.pay 16.00, 'Nourriture'
-#   Medo.pay 70.00, 'Nourriture'
-#   Seb.pay 14.00, 'Nourriture'
+#   Bou.pay 57, 'Nourriture'
+#   Gwenn.pay 16, 'Nourriture'
+#   Medo.pay 70, 'Nourriture'
+#   Seb.pay 14, 'Nourriture'
 #
 #   Gwenn.prefer_to_pay_back Medo
 #   Sosoph.prefer_to_pay_back Fred
@@ -39,6 +39,9 @@
 # Licensed under the same terms as Ruby.
 require 'set'
 require 'date'
+require 'mathn'
+require 'rational'
+require 'permutation'
 
 module Kitty
   module PersonSet
@@ -88,10 +91,18 @@ module Kitty
 
       display_details(balances, balancer.total)
 
-      apportioner = Apportioner.new
-      repayments = apportioner.distribute(balances.dup)
+      balances.reject! do |person, balance|
+        balance.zero?
+      end
 
-      display_repayments(repayments)
+      unless balances.empty?
+        apportioner = Apportioner.new
+        creditors, repayments, debtors = apportioner.distribute(balances)
+
+        unless repayments.nil? || repayments.empty?
+          display_repayments(creditors, repayments, debtors)
+        end
+      end
     end
 
     def accept(analyzer)
@@ -104,25 +115,36 @@ module Kitty
     protected
     def display_details(balances, total)
       puts('Trip: %s' % @name)
-      puts('  Total: %.2f' % [total])
+      puts('  Total: %.2f' % [Payment.to_f(total)])
       puts
       result = balances.sort do |a, b|
         a[0].name <=> b[0].name
       end
-      check_sum = 0.0
+      check_sum = 0
       result.each do |r|
-        puts('  %s: %.2f' % [r[0].name, r[1]])
+        puts('  %s: %.2f' % [r[0].name, Payment.to_f(r[1])])
         check_sum += r[1]
       end
 
       puts
-      puts('  Balance: %.2f' % [check_sum.abs])
+      puts('  Balance: %i' % [check_sum.abs])
       puts
     end
 
-    def display_repayments(repayments)
-      repayments.each do |repayment|
-        puts('  %s -> %s: %.2f' % [repayment[0].name, repayment[1].name, repayment[2]])
+    def display_repayments(creditors, repayments, debtors)
+      puts('%i choice(s):' % repayments.size)
+      repayments.each_with_index do |transfers, choice|
+        unless 0 == choice
+          puts('Or')
+        end
+        transfers.each_index do |i|
+          transfers[i].each_index do |j|
+            unless transfers[i][j] == 0
+              puts('  %s -> %s: %.2f' % [debtors[j].name,
+                  creditors[i].name, Payment.to_f(transfers[i][j])])
+            end
+          end
+        end
       end
       puts
     end
@@ -159,7 +181,8 @@ module Kitty
     end
 
     def lend(amount, purpose, *persons)
-      payments << Payment.new(self, amount, { :purpose => purpose, :exclude => self, :include => persons })
+      payments << Payment.new(self, amount, { :purpose => purpose,
+                              :exclude => self, :include => persons })
       self
     end
 
@@ -176,12 +199,13 @@ module Kitty
   end
 
   class Payment
-    attr_reader :payer, :amount, :purpose, :date
+    PRECISION = 2
+    attr_reader :payer, :purpose, :date
     attr_reader :included_persons, :excluded_persons
 
     def initialize(payer, amount, desc)
       @payer = payer
-      @amount = amount
+      @amount = Payment.to_i(amount)
       if desc.respond_to?(:to_hash)
         hash = desc.to_hash
         @purpose = hash[:purpose]
@@ -217,6 +241,22 @@ module Kitty
     def accept(analyzer)
       analyzer.analyze_payment(self)
     end
+
+    def amount
+      Payment.to_f(@amount)
+    end
+    
+    def amount_i
+      @amount
+    end
+
+    def Payment.to_f(amount)
+      amount * 10**-PRECISION
+    end
+
+    def Payment.to_i(amount)
+      (amount * 10**PRECISION).to_i
+    end
   end
 
   class Balancer
@@ -226,14 +266,14 @@ module Kitty
     def analyze_trip(trip)
       @trip = trip
       init_balances(trip)
-      @total = 0.0
+      @total = 0
     end
 
     def analyze_person(person)
     end
 
     def analyze_payment(payment)
-      @total += payment.amount
+      @total += payment.amount_i
       update_balances(payment)
     end
 
@@ -251,8 +291,8 @@ module Kitty
         end
       end
       raise("No Concerned person for #{payment}!") if concerned_persons.empty?
-      @balances[payment.payer] += payment.amount
-      share = payment.amount / concerned_persons.size
+      @balances[payment.payer] += payment.amount_i
+      share = payment.amount_i / concerned_persons.size
       concerned_persons.each do |person|
         @balances[person] -= share
       end
@@ -260,7 +300,7 @@ module Kitty
     def init_balances(trip)
       @balances = {}
       trip.persons.each do |person|
-        @balances[person] = 0.0
+        @balances[person] = 0
       end
       @balances
     end
@@ -268,56 +308,100 @@ module Kitty
 
   class Apportioner
     def distribute(balances) # { person => balance }
-      repayments = [] # [ receiver, donor, repayment ]
-      # If some persons prefer to pay back other ones:
-      balances.each do |person, balance|
-        unless person.pay_back_persons.nil? || person.pay_back_persons.empty?
-          if balance < 0
-            person.pay_back_persons.each do |pay_back_person|
-              pay_back_balance = balances[pay_back_person]
-              if pay_back_balance > 0
-                repayment = [balance.abs, pay_back_balance].min
-                balance += repayment
-                balances[pay_back_person] -= repayment
-                repayments << [person, pay_back_person, repayment]
-              end
-            end
-          else
-            puts('Pay back constraint for %s ignored!' % [person.name])
-          end
-          balances[person] = balance
-        end
-      end
+      return nil if balances.empty?
 
-      balances.reject! do |person, balance|
-        balance.zero?
-      end
-
-      donors, receivers = balances.partition do |person, balance|
+      credit_balances, debit_balances = balances.partition do |person, balance|
         balance > 0
       end
 
-      # To make sure receivers with low balance (near zero) pay as few donors as possible,
-      # receivers with low balance are treated first and pay donors with high balance.
-      receivers.sort! do |x, y|
+      credit_balances.sort! do |x, y|
+        y[1] <=> x[1]
+      end
+      debit_balances.sort! do |x, y|
         y[1] <=> x[1]
       end
 
-      receivers.each do |receiver|
-        donors.sort! do |x, y|
-          y[1] <=> x[1]
-        end
-
-        donors.each do |donor|
-          unless receiver[1].zero? || donor[1].zero?
-            repayment = [receiver[1].abs, donor[1]].min
-            receiver[1] += repayment
-            donor[1] -= repayment
-            repayments << [receiver[0], donor[0], repayment]
+      transfers = matrix_zero(credit_balances.size, debit_balances.size)
+      # If some persons prefer to pay back other ones:
+      # FIXME Display pay back constraints ignored
+      debit_balances.each_index do |j|
+        debtor = debit_balances[j][0]
+        unless debtor.pay_back_persons.nil? || debtor.pay_back_persons.empty?
+          debtor.pay_back_persons.each do |pay_back_person|
+            credit_balances.each_index do |i|
+              creditor = credit_balances[i][0]
+              if pay_back_person == creditor
+                unless debit_balances[j][1].zero? || credit_balances[i][1].zero?
+                  transfer = [debit_balances[j][1].abs, credit_balances[i][1]].min
+                  transfers[i][j] = transfer
+                  debit_balances[j][1] += transfer
+                  credit_balances[i][1] -= transfer
+                end
+              end
+            end
           end
         end
       end
+
+      repayments = optimize(credit_balances.collect { |c| c[1] }, transfers,
+                            debit_balances.collect { |d| d[1] } )
+      [credit_balances.collect{ |c| c[0] }, repayments, debit_balances.collect { |d| d[0] } ]
+    end
+    
+    private
+    def optimize( credit_balances, transfers, debit_balances )
+      perms = Permutation.new( debit_balances.size )
+      repayments = []
+      min_repayment = 0
+      perms.each do |perm|
+        min_repayment = repay(credit_balances.dup, matrix_dup(transfers),
+                              debit_balances.dup, perm.value, repayments,
+                              min_repayment)
+      end
       repayments
+    end
+
+    def repay(credit_balances, transfers, debit_balances, perm, repayments,
+              min_repayment)
+      repayment_count = 0
+      perm.each_index do |k|
+        j = perm[k]
+        credit_balances.each_index do |i|
+          unless debit_balances[j].zero? || credit_balances[i].zero?
+            transfer = [debit_balances[j].abs, credit_balances[i]].min
+            transfers[i][j] = transfer
+            debit_balances[j] += transfer
+            credit_balances[i] -= transfer
+            repayment_count += 1
+          end
+        end
+      end
+      if repayment_count < min_repayment || repayments.empty?
+        min_repayment = repayment_count
+        repayments.clear
+        repayments << transfers
+      elsif repayment_count == min_repayment
+        unless repayments.include?(transfers)
+          repayments << transfers
+        end
+      end
+      min_repayment
+    end
+
+    def matrix_zero(rows, cols)
+      m = []
+      rows.times do
+        m << Array.new( cols, 0 )
+      end
+      m
+    end
+
+    def matrix_dup(m)
+      m_dup = []
+      m.each do |row|
+        m_dup << row.dup
+      end
+      m_dup
     end
   end
 
