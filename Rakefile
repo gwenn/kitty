@@ -2,12 +2,17 @@ require 'rake/clean'
 require 'rake/testtask'
 require 'rake/rdoctask'
 require 'rake/packagetask'
-require 'rake/contrib/sshpublisher'
-require 'rake/contrib/rubyforgepublisher'
 #require 'meta_project'
+
+PROJECT_NAME = 'kitty'
+PROJECT_VERSION = '0.0.1'
+USER = 'elbarto'
 
 # CLEAN.include('*.x')
 CLOBBER.include('coverage')
+
+desc "Run all the tests"
+task :default => [:test]
 
 # rake test                           # run tests normally
 # rake test TEST=just_one_file.rb     # run just one test file.
@@ -15,32 +20,28 @@ CLOBBER.include('coverage')
 Rake::TestTask.new do |t|
   #t.ruby_opts << '-rcoverage'
   t.libs << 'test'
-  t.test_files = FileList['test/ts_kitty.rb']
+  t.test_files = FileList['ts_kitty.rb']
   t.verbose = true
 end
 
-# rake rdoc           # generate the rdoc files
-# rake clobber_rdoc   # delete all the rdoc files.
-# rake rerdoc         # rebuild the rdoc files from scratch, even if they are not out of date.
 Rake::RDocTask.new do |rd|
   # rd.main = 'README.rdoc'
   # rd.rdoc_files.include('README.rdoc', 'lib/**/*.rb')
   rd.rdoc_files.include('lib/**/*.rb')
-  rd.rdoc_dir = 'doc'
-  # rd.title = 'Kitty'
+  rd.rdoc_dir = 'rdoc'
+  rd.title = PROJECT_NAME.capitalize
   rd.options << '--inline-source' << ' --line-numbers' << ' --tab-width 2'
 end
 
-desc 'Upload current documentation to Rubyforge'
+desc 'Upload documentation to Rubyforge'
 task :upload_docs => [:rdoc] do
-  sh 'find doc -type d -exec chmod 775 {} \;'
-  sh 'find doc -type f -exec chmod 664 {} \;'
-  sh 'scp -r doc/* elbarto@rubyforge.org:/var/www/gforge-projects/kitty/'
+  sh 'find rdoc -type d -exec chmod 775 {} \;'
+  sh 'find rdoc -type f -exec chmod 664 {} \;'
+  sh "scp -r rdoc/* #{USER}@rubyforge.org:/var/www/gforge-projects/#{PROJECT_NAME}/"
 end
 
-desc 'Create distribution file'
-Rake::PackageTask.new('kitty', '0.0.1') do |p| # Introduce parameter for
-  p.need_tar = true
+Rake::PackageTask.new(PROJECT_NAME, PROJECT_VERSION) do |p|
+  p.need_zip = true
   p.package_files.
     include('Rakefile'). # README INSTALL TODO CHANGELOG LICENSE
     include('setup.rb').
@@ -49,10 +50,15 @@ Rake::PackageTask.new('kitty', '0.0.1') do |p| # Introduce parameter for
     include('test/**/*.rb')
 end
 
+desc "Create Darcs distribution"
+task :dist do
+  sh "darcs dist -d #{PROJECT_NAME}-#{PROJECT_VERSION}"
+end
+
 desc "Show library's code statistics"
 task :stats do
   $:.push('/usr/share/rails/railties/lib/')
   require 'code_statistics'
-  CodeStatistics.new( ['Kitty', 'lib'], 
+  CodeStatistics.new( [PROJECT_NAME.capitalize, 'lib'], 
                       ['Units', 'test'] ).to_s
 end
