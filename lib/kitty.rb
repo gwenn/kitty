@@ -306,36 +306,42 @@ module Kitty
     end
   end
 
+  Balance = Struct.new('Balance', :person, :value)
+  
   class Apportioner
     def distribute(balances) # { person => balance }
       return nil if balances.empty?
 
-      credit_balances, debit_balances = balances.partition do |person, balance|
-        balance > 0
+      balances = balances.collect do |person, balance|
+        Balance.new(person, balance)
+      end
+
+      credit_balances, debit_balances = balances.partition do |balance|
+        balance.value > 0
       end
 
       credit_balances.sort! do |x, y|
-        y[1] <=> x[1]
+        y.value <=> x.value
       end
       debit_balances.sort! do |x, y|
-        y[1] <=> x[1]
+        y.value <=> x.value
       end
 
       transfers = matrix_zero(credit_balances.size, debit_balances.size)
       # If some persons prefer to pay back other ones:
       # FIXME Display pay back constraints ignored
       debit_balances.each_index do |j|
-        debtor = debit_balances[j][0]
+        debtor = debit_balances[j].person
         unless debtor.pay_back_persons.nil? || debtor.pay_back_persons.empty?
           debtor.pay_back_persons.each do |pay_back_person|
             credit_balances.each_index do |i|
-              creditor = credit_balances[i][0]
+              creditor = credit_balances[i].person
               if pay_back_person == creditor
-                unless debit_balances[j][1].zero? || credit_balances[i][1].zero?
-                  transfer = [debit_balances[j][1].abs, credit_balances[i][1]].min
+                unless debit_balances[j].value.zero? || credit_balances[i].value.zero?
+                  transfer = [debit_balances[j].value.abs, credit_balances[i].value].min
                   transfers[i][j] = transfer
-                  debit_balances[j][1] += transfer
-                  credit_balances[i][1] -= transfer
+                  debit_balances[j].value += transfer
+                  credit_balances[i].value -= transfer
                 end
               end
             end
@@ -343,9 +349,9 @@ module Kitty
         end
       end
 
-      repayments = optimize(credit_balances.collect { |c| c[1] }, transfers,
-                            debit_balances.collect { |d| d[1] } )
-      [credit_balances.collect{ |c| c[0] }, repayments, debit_balances.collect { |d| d[0] } ]
+      repayments = optimize(credit_balances.collect { |c| c.value }, transfers,
+                            debit_balances.collect { |d| d.value } )
+      [credit_balances.collect{ |c| c.person }, repayments, debit_balances.collect { |d| d.person } ]
     end
     
     private
