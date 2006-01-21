@@ -44,7 +44,7 @@ require 'rational'
 require 'permutation'
 
 module Kitty
-  # Implements a Set of Person by delegation.
+  # Implements a Set of Persons by delegation.
   module PersonSet
     include Enumerable
 
@@ -215,7 +215,7 @@ module Kitty
     end
   end
 
-  # Common expense made by one Persons for a Group.
+  # Common expense.
   class Payment
     # Specifies the precision of numeric calculations.
     PRECISION = 2
@@ -284,6 +284,7 @@ module Kitty
   end
 
   # Calculates credit and debit balances.
+  #
   # +Visitor+ pattern : _Visitor_
   class Balancer
     # { person => balance }
@@ -446,7 +447,8 @@ module Kitty
     #end
 
     # Declares the current Trip.
-    # *+name+ must be capitalized*.
+    # 
+    # <b>+name+ must be capitalized</b>.
     def trip(name, *persons)
       trip = singleton_class.const_set(name, Kitty::Trip.new(name))
       singleton_class.const_set(:TRIP, trip)
@@ -457,7 +459,8 @@ module Kitty
     end
 
     # Declares one Person taking part in the current trip.
-    # *+name+ must be capitalized*.
+    # 
+    # <b>+name+ must be capitalized</b>.
     def person(name, period = nil)
       person = singleton_class.const_set(name, Kitty::Person.new(name, period))
       current_trip << person
@@ -465,7 +468,8 @@ module Kitty
     end
 
     # Declares a sub-group of persons. This is useful when these persons have many expenses in common.
-    # *+name+ must be capitalized*.
+    #
+    # <b>+name+ must be capitalized</b>.
     def group(name, *persons)
       group = singleton_class.const_set(name, Kitty::Group.new(name))
       persons.collect! do |person|
