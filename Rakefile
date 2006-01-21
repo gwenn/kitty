@@ -5,7 +5,7 @@ require 'rake/packagetask'
 #require 'meta_project'
 
 PROJECT_NAME = 'kitty'
-PROJECT_VERSION = '0.0.1'
+PROJECT_VERSION = '0.1'
 USER = 'elbarto'
 
 # CLEAN.include('*.x')
@@ -42,6 +42,7 @@ end
 
 Rake::PackageTask.new(PROJECT_NAME, PROJECT_VERSION) do |p|
   p.need_zip = true
+  p.need_tar_gz = true
   p.package_files.
     include('Rakefile'). # README INSTALL TODO CHANGELOG LICENSE
     include('setup.rb').
