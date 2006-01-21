@@ -11,20 +11,20 @@
 #
 #   trip 'Neons'
 #
-#   group 'Break', 'Bou', 'Fred', 'Sosoph'
-#   group 'Advantime', 'Gwenn', 'Medo', 'Seb'
+#   group 'Car1', 'Bou', 'Fred', 'Sosoph'
+#   group 'Car2', 'Gwenn', 'Medo', 'Seb'
 #
-#   Seb.pay 45, :purpose => 'Essence', :include => Advantime
-#   Sosoph.pay 40, :purpose => 'Peage', :include => Break
-#   Fred.pay 50, :purpose => 'Essence', :include => Break
-#   Medo.pay 37, :purpose => 'Resto', :exclude => [Fred, Gwenn]
-#   Fred.pay 70, :purpose => 'Makina', :exclude => Gwenn
-#   Sosoph.pay 6, :purpose => 'Makina', :exclude => Gwenn
+#   Seb.pay 45, :purpose => 'petrol', :include => Car2
+#   Sosoph.pay 40, :purpose => 'toll', :include => Car1
+#   Fred.pay 50, :purpose => 'petrol', :include => Car1
+#   Medo.pay 37, :purpose => 'restaurant', :exclude => [Fred, Gwenn]
+#   Fred.pay 70, :purpose => 'makina', :exclude => Gwenn
+#   Sosoph.pay 6, :purpose => 'makina', :exclude => Gwenn
 #
-#   Bou.pay 57, 'Nourriture'
-#   Gwenn.pay 16, 'Nourriture'
-#   Medo.pay 70, 'Nourriture'
-#   Seb.pay 14, 'Nourriture'
+#   Bou.pay 57, 'foodstuffs'
+#   Gwenn.pay 16, 'foodstuffs'
+#   Medo.pay 70, 'foodstuffs'
+#   Seb.pay 14, 'foodstuffs'
 #
 #   Gwenn.prefer_to_pay_back Medo
 #   Sosoph.prefer_to_pay_back Fred
@@ -44,6 +44,7 @@ require 'rational'
 require 'permutation'
 
 module Kitty
+  # Implements a Set of Person by delegation.
   module PersonSet
     include Enumerable
 
@@ -51,6 +52,7 @@ module Kitty
       @persons ||= Set.new
     end
 
+    # Ensures that Group of persons are correctly merged.
     def add(*persons)
       persons.each do |elt|
         if elt.respond_to?(:each)
@@ -71,6 +73,7 @@ module Kitty
     end
   end
 
+  # A group of persons making common expenses.
   class Trip
     attr_reader :name
     attr_reader :period
@@ -82,6 +85,9 @@ module Kitty
       @period = period
     end
 
+    # Calculates credit and debit balances and then suggests optimal repayments.
+    #--
+    # TODO Find a better name
     def balance
       raise('No person toke part to these trip!') if @persons.nil? || @persons.empty?
 
@@ -105,6 +111,7 @@ module Kitty
       end
     end
 
+    # +Visitor+ pattern : _Element_
     def accept(analyzer)
       analyzer.analyze_trip(self)
       @persons.each do |person|
@@ -150,7 +157,10 @@ module Kitty
     end
   end
 
-  class Group # FIXME add @period ?
+  # A sub-group of persons making common expenses.
+  #--
+  # FIXME add @period ?
+  class Group
     attr_reader :name
     include PersonSet
 
@@ -160,6 +170,7 @@ module Kitty
     end
   end
 
+  # A person taking part in a Trip.
   class Person
     attr_reader :name
     attr_accessor :period
@@ -171,25 +182,31 @@ module Kitty
       @period = period
     end
 
+    # Returns the expenses made by this person.
     def payments
       @payments ||= []
     end
 
+    # Adds one expense.
     def pay(amount, desc = 'stuff')
       payments << Payment.new(self, amount, desc)
       self
     end
-
+ 
     def lend(amount, purpose, *persons)
       payments << Payment.new(self, amount, { :purpose => purpose,
                               :exclude => self, :include => persons })
       self
     end
 
-    def prefer_to_pay_back(*persons) # FIXME destructive method
+    # Changes the way repayments are divided up.
+    #--
+    # FIXME destructive method
+    def prefer_to_pay_back(*persons)
       @pay_back_persons = persons
     end
 
+    # +Visitor+ pattern : _Element_
     def accept(analyzer)
       analyzer.analyze_person(self)
       payments.each do |payment|
@@ -198,7 +215,9 @@ module Kitty
     end
   end
 
+  # Common expense made by one Persons for a Group.
   class Payment
+    # Specifies the precision of numeric calculations.
     PRECISION = 2
     attr_reader :payer, :purpose, :date
     attr_reader :included_persons, :excluded_persons
@@ -238,6 +257,7 @@ module Kitty
       end
     end
 
+    # +Visitor+ pattern : _Element_
     def accept(analyzer)
       analyzer.analyze_payment(self)
     end
@@ -246,21 +266,28 @@ module Kitty
       Payment.to_f(@amount)
     end
     
+    # Returns the integer form of the amount.
+    # Indeed, all internal calculations are made with integers.
     def amount_i
       @amount
     end
 
+    # Converts an integer amount in a decimal depending on the current precision.
     def Payment.to_f(amount)
       amount * 10**-PRECISION
     end
 
+    # Converts an amount in an integer depending on the current precision.
     def Payment.to_i(amount)
       (amount * 10**PRECISION).to_i
     end
   end
 
+  # Calculates credit and debit balances.
+  # +Visitor+ pattern : _Visitor_
   class Balancer
-    attr_reader :balances # { person => balance }
+    # { person => balance }
+    attr_reader :balances
     attr_reader :total
 
     def analyze_trip(trip)
@@ -306,8 +333,11 @@ module Kitty
     end
   end
 
+  # Balance for one Person.
   Balance = Struct.new('Balance', :person, :value)
   
+  # Divides up repayments in such a way that the number of repayments is minimal.
+  # All optimal combinations are returns.
   class Apportioner
     def distribute(balances) # { person => balance }
       return nil if balances.empty?
@@ -415,6 +445,8 @@ module Kitty
     #def DSL.extended(obj) FIXME
     #end
 
+    # Declares the current Trip.
+    # *+name+ must be capitalized*.
     def trip(name, *persons)
       trip = singleton_class.const_set(name, Kitty::Trip.new(name))
       singleton_class.const_set(:TRIP, trip)
@@ -424,12 +456,16 @@ module Kitty
       trip
     end
 
+    # Declares one Person taking part in the current trip.
+    # *+name+ must be capitalized*.
     def person(name, period = nil)
       person = singleton_class.const_set(name, Kitty::Person.new(name, period))
       current_trip << person
       person
     end
 
+    # Declares a sub-group of persons. This is useful when these persons have many expenses in common.
+    # *+name+ must be capitalized*.
     def group(name, *persons)
       group = singleton_class.const_set(name, Kitty::Group.new(name))
       persons.collect! do |person|
@@ -443,6 +479,7 @@ module Kitty
       group
     end
 
+    # Calculates credit and debit balances and then suggests optimal repayments.
     def balance
       current_trip.balance()
     end
@@ -465,6 +502,7 @@ module Kitty
     end
   end
 
+  # Context in which DSL instructions are interpreted.
   class Trick
     include DSL
 
