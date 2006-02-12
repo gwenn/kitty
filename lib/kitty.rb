@@ -41,7 +41,6 @@ require 'set'
 require 'date'
 require 'mathn'
 require 'rational'
-require 'permutation'
 
 module Kitty
   # Implements a Set of Persons by delegation.
@@ -414,7 +413,7 @@ module Kitty
       min_repayment = 0
       perms.each do |perm|
         min_repayment = repay(credit_balances.dup, matrix_dup(transfers),
-                              debit_balances.dup, perm.value, repayments,
+                              debit_balances.dup, perm, repayments,
                               min_repayment)
       end
       repayments
@@ -461,6 +460,44 @@ module Kitty
         m_dup << row.dup
       end
       m_dup
+    end
+  end
+
+  # See http://permutation.rubyforge.org (Florian Frank)
+  # But its factorial method does not work in $SAFE = 4 mode! 
+  class Permutation
+    def initialize(size)
+      @size = size
+      @last = factorial(size) - 1
+    end
+
+    def each
+        0.upto(@last) do |r|
+            yield unrank_indices(r)
+        end
+    end
+
+    private
+    def factorial(n)
+        f = 1
+        for i in 2..n do f *= i end
+        f
+    end
+
+    def unrank_indices(m)
+        result = Array.new(@size, 0)
+        for i in 0...@size
+            f = factorial(i)
+            x = m % (f * (i + 1))
+            m -= x
+            x /= f
+            result[@size - i - 1] = x
+            x -= 1
+            for j in (@size - i)...@size
+                result[j] += 1 if result[j] > x
+            end
+        end
+        result
     end
   end
 
@@ -647,7 +684,9 @@ if __FILE__ == $0
       ctx = Kitty::Trick.new
       File.open(arg) do |file|
         #thr = Thread.new do
-        #  $SAFE = 1
+          #ctx.taint
+          #file.taint
+          #$SAFE = 4
           ctx.instance_eval(file.read, arg, 1)
         #end
         #thr.join
