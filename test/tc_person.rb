@@ -61,10 +61,10 @@ module TestKitty
       assert_same(@person, payment.payer)
       assert_equal(10, payment.amount)
       assert_equal('misc', payment.purpose)
-      assert_equal(2, payment.included_persons.length)
-      assert(payment.included_persons.include?(receiver0))
-      assert(payment.included_persons.include?(receiver1))
-      assert(payment.excluded_persons.include?(@person))
+      assert_equal(2, payment.included_persons_or_groups.length)
+      assert(payment.included_persons_or_groups.include?(receiver0))
+      assert(payment.included_persons_or_groups.include?(receiver1))
+      assert_equal(@person, payment.excluded_persons_or_groups)
     end
 
     def test_prefer_to_back

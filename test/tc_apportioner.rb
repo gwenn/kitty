@@ -61,10 +61,15 @@ module TestKitty
       @balances[@person2] = -10
       @balances[@person3] = -20
       creditors, repayments, debitors = @apportioner.distribute(@balances)
+      # FIXME Order problem
       assert_equal(2, creditors.length)
+      assert(creditors.include?(@person0))
+      assert(creditors.include?(@person1))
       assert_equal(@person0, creditors[0])
       assert_equal(@person1, creditors[1])
       assert_equal(2, debitors.length)
+      assert(debitors.include?(@person2))
+      assert(debitors.include?(@person3))
       assert_equal(@person2, debitors[0])
       assert_equal(@person3, debitors[1])
       assert_equal(1, repayments.length)

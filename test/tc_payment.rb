@@ -15,11 +15,11 @@ module TestKitty
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
       assert_nil(@payment.date)
-      assert_nil(@payment.included_persons)
-      assert_nil(@payment.excluded_persons)
+      assert_nil(@payment.included_persons_or_groups)
+      assert_nil(@payment.excluded_persons_or_groups)
     end
 
-    def test_included_persons
+    def test_included_persons_or_groups
       included0 = Kitty::Person.new('included0')
       included1 = Kitty::Person.new('included1')
       @payment = Kitty::Payment.new(@payer, 10, :purpose => 'misc', :include => [included0, included1])
@@ -27,10 +27,10 @@ module TestKitty
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
       assert_nil(@payment.date)
-      assert_equal(2, @payment.included_persons.length)
-      assert(@payment.included_persons.include?(included0))
-      assert(@payment.included_persons.include?(included1))
-      assert_nil(@payment.excluded_persons)
+      assert_equal(2, @payment.included_persons_or_groups.length)
+      assert(@payment.included_persons_or_groups.include?(included0))
+      assert(@payment.included_persons_or_groups.include?(included1))
+      assert_nil(@payment.excluded_persons_or_groups)
     end
 
     def test_included_person
@@ -40,12 +40,11 @@ module TestKitty
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
       assert_nil(@payment.date)
-      assert_equal(1, @payment.included_persons.length)
-      assert(@payment.included_persons.include?(included))
-      assert_nil(@payment.excluded_persons)
+      assert_equal(included, @payment.included_persons_or_groups)
+      assert_nil(@payment.excluded_persons_or_groups)
     end
 
-    def test_excluded_persons
+    def test_excluded_persons_or_groups
       excluded0 = Kitty::Person.new('excluded0')
       excluded1 = Kitty::Person.new('excluded1')
       @payment = Kitty::Payment.new(@payer, 10, :purpose => 'misc', :exclude => [excluded0, excluded1])
@@ -53,10 +52,10 @@ module TestKitty
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
       assert_nil(@payment.date)
-      assert_nil(@payment.included_persons)
-      assert_equal(2, @payment.excluded_persons.length)
-      assert(@payment.excluded_persons.include?(excluded0))
-      assert(@payment.excluded_persons.include?(excluded1))
+      assert_nil(@payment.included_persons_or_groups)
+      assert_equal(2, @payment.excluded_persons_or_groups.length)
+      assert(@payment.excluded_persons_or_groups.include?(excluded0))
+      assert(@payment.excluded_persons_or_groups.include?(excluded1))
     end
 
     def test_excluded_person
@@ -66,9 +65,8 @@ module TestKitty
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
       assert_nil(@payment.date)
-      assert_nil(@payment.included_persons)
-      assert_equal(1, @payment.excluded_persons.length)
-      assert(@payment.excluded_persons.include?(excluded))
+      assert_nil(@payment.included_persons_or_groups)
+      assert_equal(excluded, @payment.excluded_persons_or_groups)
     end
 
     def test_date
@@ -78,8 +76,8 @@ module TestKitty
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
       assert_same(date, @payment.date)
-      assert_nil(@payment.included_persons)
-      assert_nil(@payment.excluded_persons)
+      assert_nil(@payment.included_persons_or_groups)
+      assert_nil(@payment.excluded_persons_or_groups)
     end
 
     def teardown
