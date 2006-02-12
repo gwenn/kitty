@@ -53,17 +53,28 @@ module Kitty
     end
 
     # Ensures that Group of persons are correctly merged.
-    def add(*persons)
-      persons.each do |elt|
-        if elt.respond_to?(:each)
-          self.persons.merge(elt)
-        else
-          self.persons.add(elt)
+    def add(persons_or_groups)
+      if persons_or_groups.is_a?(Kitty::Person) # FIXME Duck Typing!
+        persons.add(persons_or_groups)
+      else
+        persons_or_groups.each do |person_or_group|
+          add(person_or_group)
+        end
+      end
+    end
+    alias :<< :add
+    
+    def delete(persons_or_groups)
+      if persons_or_groups.is_a?(Kitty::Person) # FIXME Duck Typing!
+        persons.delete(persons_or_groups)
+      else
+        persons_or_groups.each do |person_or_group|
+          delete(person_or_group)
         end
       end
       self
     end
-    alias :<< :add
+
 
     def each
       persons.each do |person|
@@ -85,11 +96,22 @@ module Kitty
       @period = period
     end
 
+    def groups
+      @groups ||= Set.new
+    end
+
+    def add(persons_or_groups)
+      if persons_or_groups.is_a?(Kitty::Group)
+        groups << persons_or_groups
+      end
+      super(persons_or_groups)
+    end
+
     # Calculates credit and debit balances and then suggests optimal repayments.
     #--
     # TODO Find a better name
     def balance
-      raise('No person toke part to these trip!') if @persons.nil? || @persons.empty?
+      raise('No person toke part to these trip!') if persons.empty?
 
       balancer = Balancer.new
       accept(balancer)
@@ -114,7 +136,7 @@ module Kitty
     # +Visitor+ pattern : _Element_
     def accept(analyzer)
       analyzer.analyze_trip(self)
-      @persons.each do |person|
+      persons.each do |person|
         person.accept(analyzer)
       end
     end
@@ -206,6 +228,14 @@ module Kitty
       @pay_back_persons = persons
     end
 
+    def arrive()
+      @period = nil
+    end
+
+    def leave()
+      @period = nil
+    end
+
     # +Visitor+ pattern : _Element_
     def accept(analyzer)
       analyzer.analyze_person(self)
@@ -220,7 +250,7 @@ module Kitty
     # Specifies the precision of numeric calculations.
     PRECISION = 2
     attr_reader :payer, :purpose, :date
-    attr_reader :included_persons, :excluded_persons
+    attr_reader :included_persons_or_groups, :excluded_persons_or_groups
 
     def initialize(payer, amount, desc)
       @payer = payer
@@ -230,30 +260,20 @@ module Kitty
         @purpose = hash[:purpose]
         @date = hash[:date]
         if hash.has_key?(:include)
-          if hash[:include].respond_to?(:each)
-            @included_persons = Set.new(hash[:include])
-          else
-            @included_persons = Set.new
-            @included_persons << hash[:include]
-          end
+          @included_persons_or_groups = hash[:include]
         else
-          @included_persons = nil
+          @included_persons_or_groups = nil
         end
         if hash.has_key?(:exclude)
-          if hash[:exclude].respond_to?(:each)
-            @excluded_persons = Set.new(hash[:exclude])
-          else
-            @excluded_persons = Set.new
-            @excluded_persons << hash[:exclude]
-          end
+          @excluded_persons_or_groups = hash[:exclude]
         else
-          @excluded_persons = nil
+          @excluded_persons_or_groups = nil
         end
       else
         @purpose = desc
         @date = nil
-        @included_persons = nil
-        @excluded_persons = nil
+        @included_persons_or_groups = nil
+        @excluded_persons_or_groups = nil
       end
     end
 
@@ -307,12 +327,14 @@ module Kitty
 
     private
     def update_balances(payment)
-      if payment.included_persons.nil? || payment.included_persons.empty?
-        concerned_persons = @trip.persons.dup
+      concerned_person_set = Object.new.extend(Kitty::PersonSet)
+      if payment.included_persons_or_groups.nil?
+        concerned_person_set << @trip.persons
       else
-        concerned_persons = payment.included_persons.dup << payment.payer
+        concerned_person_set << payment.included_persons_or_groups << payment.payer
       end
-      concerned_persons.subtract(payment.excluded_persons) unless payment.excluded_persons.nil?
+      concerned_person_set.delete(payment.excluded_persons_or_groups) unless payment.excluded_persons_or_groups.nil?
+      concerned_persons = concerned_person_set.persons
       unless payment.date.nil?
         concerned_persons.reject! do |person|
           !(person.period.nil?) and !(person.period.include?(payment.date))
@@ -442,6 +464,88 @@ module Kitty
     end
   end
 
+  # Serializes one Trip in memory to a DSL stream.
+  class ToDSLSerializer
+    attr_reader :io
+
+    def initialize(io)
+      raise(ArgumentError, 'Illegal stream', caller) unless io.respond_to?(:to_io)
+      @io = io.to_io
+    end
+
+    def analyze_trip(trip)
+      # FIXME How to retreive Groups?
+      io.print 'trip \'%s\'' % trip.name
+      io.puts
+    end
+
+    def end_trip(trip)
+      trip.each do |person|
+        unless person.pay_back_persons.nil? || person.pay_back_persons.empty?
+          person.pay_back_persons.each do |pay_back_person|
+            io.puts '%s.prefer_to_pay_back %s' % [person.name, pay_back_person.name]
+          end
+        end
+      end
+      io.puts
+      io.puts 'checkout'
+      io.puts
+    end
+
+    def analyze_person(person)
+      # TODO person.period
+    end
+
+    def analyze_payment(payment)
+      # TODO date
+      io.print '%s.pay %.2f, :purpose => \'%s\'' % [payment.payer.name, payment.amount, payment.purpose]
+      unless payment.included_persons_or_groups.nil?
+        io.print ', :include => '
+        if payment.included_persons_or_groups.is_a?(Array)
+          io.print '['
+          payment.included_persons_or_groups.each do |included_person_or_group|
+            io.print '%s, ' % included_person_or_group.name
+          end
+          io.print ']'
+        else
+          io.print '%s' % payment.included_persons_or_groups.name
+        end
+      end
+      unless payment.excluded_persons_or_groups.nil?
+        io.print ', :exclude => '
+        if payment.excluded_persons_or_groups.is_a?(Array)
+          io.print '['
+          payment.excluded_persons_or_groups.each do |excluded_person_or_group|
+            io.print '%s, ' % excluded_person_or_group.name
+          end
+          io.print ']'
+        else
+          io.print '%s' % payment.excluded_persons_or_groups.name
+        end
+      end
+      io.puts
+      io.puts 'checkout'
+      io.puts
+    end
+  end
+
+  class Period # What about a Range?
+    attr_reader :start, :end
+  
+    def initialize
+      @start = 0
+      @end = 0
+    end
+
+    def inc
+      @end += 1
+    end
+    
+    def to_range
+      Range.new(@start, @end)
+    end
+  end
+
   module DSL
     #def DSL.extended(obj) FIXME
     #end
@@ -450,14 +554,14 @@ module Kitty
     # 
     # <b>+name+ must be capitalized</b>.
     def trip(name, *persons)
-      trip = singleton_class.const_set(name, Kitty::Trip.new(name))
+      trip = singleton_class.const_set(name, Kitty::Trip.new(name, Period.new))
       singleton_class.const_set(:TRIP, trip)
       persons.each do |person|
-        person(person)
+        trip << create_person(person)
       end
       trip
     end
-
+    
     # Declares one Person taking part in the current trip.
     # 
     # <b>+name+ must be capitalized</b>.
@@ -466,20 +570,20 @@ module Kitty
       current_trip << person
       person
     end
-
+    
     # Declares a sub-group of persons. This is useful when these persons have many expenses in common.
     #
     # <b>+name+ must be capitalized</b>.
     def group(name, *persons)
       group = singleton_class.const_set(name, Kitty::Group.new(name))
-      persons.collect! do |person|
+      persons.each do |person|
         if person.is_a?(Kitty::Person)
-          person
+          group << person
         else
-          person(person)
+          group << create_person(person)
         end
       end
-      group.add(*persons)
+      current_trip << group
       group
     end
 
@@ -489,7 +593,15 @@ module Kitty
     end
     alias :checkout :balance
 
+    def day(day = nil) # FIXME How to take into account any parameter passed?
+      current_trip.period.inc
+    end
+    
     private
+    def create_person(name, period = nil)
+      singleton_class.const_set(name, Kitty::Person.new(name, period))
+    end
+    
     def current_trip
       unless singleton_class.const_defined?(:TRIP)
         warn('No trip defines! A default one is created.')
@@ -534,7 +646,11 @@ if __FILE__ == $0
     ARGV.each do |arg|
       ctx = Kitty::Trick.new
       File.open(arg) do |file|
-        ctx.instance_eval(file.read, arg, 1)
+        #thr = Thread.new do
+        #  $SAFE = 1
+          ctx.instance_eval(file.read, arg, 1)
+        #end
+        #thr.join
       end
     end
   else
