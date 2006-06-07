@@ -251,6 +251,7 @@ module Kitty
     attr_reader :payer, :purpose, :date
     attr_reader :included_persons_or_groups, :excluded_persons_or_groups
 
+    # FIXME: Many arguments! Named them : http://rpa-base.rubyforge.org/wiki/wiki.cgi?GoodAPIDesign
     def initialize(payer, amount, desc)
       @payer = payer
       @amount = Payment.to_i(amount)
@@ -306,6 +307,7 @@ module Kitty
   #
   # +Visitor+ pattern : _Visitor_
   class Balancer
+    # FIXME: Full objects, not hashes! http://rpa-base.rubyforge.org/wiki/wiki.cgi?GoodAPIDesign
     # { person => balance }
     attr_reader :balances
     attr_reader :total
@@ -361,6 +363,7 @@ module Kitty
   # Divides up repayments in such a way that the number of repayments is minimal.
   # All optimal combinations are returns.
   class Apportioner
+    # FIXME: Full objects, not hashes! http://rpa-base.rubyforge.org/wiki/wiki.cgi?GoodAPIDesign
     def distribute(balances) # { person => balance }
       return nil if balances.empty?
 
@@ -661,7 +664,13 @@ module Kitty
 
     def Trick.const_missing(sym)
       warn("Constante '%s' was not declared! The corresponding person is created." % sym)
-      person(sym)
+      # FIXME duplication of person(sym) in DSL
+      person = const_set(sym, Kitty::Person.new(sym.to_s))
+      unless const_defined?(:TRIP)
+        const_set(:TRIP, Kitty::Trip.new('One trip', Period.new))
+      end
+      const_get(:TRIP) << person
+      person
     end
   end
 end
