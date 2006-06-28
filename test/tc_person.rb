@@ -1,7 +1,6 @@
 $:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'test/unit'
 require 'kitty'
-require 'date'
 
 module TestKitty
   class TestPerson < Test::Unit::TestCase
@@ -11,16 +10,6 @@ module TestKitty
 
     def test_initial_state
       assert_equal('Test', @person.name)
-      assert_nil(@person.period)
-      assert(@person.payments.empty?)
-      assert_nil(@person.pay_back_persons)
-    end
-
-    def test_period
-      period = Date.new(2005, 9, 10)..Date.new(2005, 9, 25)
-      @person = Kitty::Person.new('Test', period)
-      assert_equal('Test', @person.name)
-      assert_same(period, @person.period)
       assert(@person.payments.empty?)
       assert_nil(@person.pay_back_persons)
     end

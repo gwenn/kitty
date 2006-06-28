@@ -12,13 +12,11 @@ module Kitty
   # A group of persons making common expenses.
   class Trip
     attr_reader :name
-    attr_reader :period
     include PersonSet
 
-    def initialize(name, period = nil)
+    def initialize(name)
       raise(ArgumentError, 'Illegal nil or empty name', caller) if name.nil? || name.empty?
       @name = name
-      @period = period
     end
 
     def groups

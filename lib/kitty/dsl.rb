@@ -2,7 +2,6 @@
 # 
 # Licensed under the same terms as Ruby.
 require 'kitty/group'
-require 'kitty/period'
 require 'kitty/person'
 require 'kitty/trip'
 
@@ -15,7 +14,7 @@ module Kitty
     # 
     # <b>+name+ must be capitalized</b>.
     def trip(name, *persons)
-      trip = singleton_class.const_set(name, Kitty::Trip.new(name, Period.new))
+      trip = singleton_class.const_set(name, Kitty::Trip.new(name))
       singleton_class.const_set(:TRIP, trip)
       persons.each do |person|
         trip << create_person(person)
@@ -26,8 +25,8 @@ module Kitty
     # Declares one Person taking part in the current trip.
     # 
     # <b>+name+ must be capitalized</b>.
-    def person(name, period = nil)
-      person = singleton_class.const_set(name, Kitty::Person.new(name, period))
+    def person(name)
+      person = singleton_class.const_set(name, Kitty::Person.new(name))
       current_trip << person
       person
     end
@@ -54,13 +53,9 @@ module Kitty
     end
     alias :checkout :balance
 
-    def day(day = nil) # FIXME How to take into account any parameter passed?
-      current_trip.period.inc
-    end
-    
     private
-    def create_person(name, period = nil)
-      singleton_class.const_set(name, Kitty::Person.new(name, period))
+    def create_person(name)
+      singleton_class.const_set(name, Kitty::Person.new(name))
     end
     
     def current_trip
@@ -88,7 +83,7 @@ module Kitty
       # FIXME duplication of person(sym) in DSL
       person = const_set(sym, Kitty::Person.new(sym.to_s))
       unless const_defined?(:TRIP)
-        const_set(:TRIP, Kitty::Trip.new('One trip', Period.new))
+        const_set(:TRIP, Kitty::Trip.new('One trip'))
       end
       const_get(:TRIP) << person
       person

@@ -6,7 +6,6 @@ require 'kitty/personset'
 module Kitty
   # A sub-group of persons making common expenses.
   #--
-  # FIXME add @period ?
   class Group
     attr_reader :name
     include PersonSet

@@ -39,11 +39,13 @@ module Kitty
       end
       beneficiary_set.delete(payment.excluded_persons_or_groups) unless payment.excluded_persons_or_groups.nil?
       beneficiaries = beneficiary_set.persons
+=begin
       unless payment.date.nil?
         beneficiaries.reject! do |beneficiary|
           !(beneficiary.period.nil?) and !(beneficiary.period.include?(payment.date))
         end
       end
+=end
       raise("No Beneficiary for #{payment}!") if beneficiaries.empty?
       @balances[payment.payer] += payment.amount_i
       share = payment.amount_i / beneficiaries.size

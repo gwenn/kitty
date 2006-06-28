@@ -9,7 +9,7 @@ module Kitty
   class Payment
     # Specifies the precision of numeric calculations.
     PRECISION = 2
-    attr_reader :payer, :purpose, :date
+    attr_reader :payer, :purpose
     attr_reader :included_persons_or_groups, :excluded_persons_or_groups
 
     # FIXME: Many arguments! Named them : http://rpa-base.rubyforge.org/wiki/wiki.cgi?GoodAPIDesign
@@ -19,7 +19,6 @@ module Kitty
       if desc.respond_to?(:to_hash)
         hash = desc.to_hash
         @purpose = hash[:purpose]
-        @date = hash[:date]
         if hash.has_key?(:include)
           @included_persons_or_groups = hash[:include]
         else
@@ -32,7 +31,6 @@ module Kitty
         end
       else
         @purpose = desc
-        @date = nil
         @included_persons_or_groups = nil
         @excluded_persons_or_groups = nil
       end

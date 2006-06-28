@@ -7,13 +7,11 @@ module Kitty
   # A person taking part in a Trip.
   class Person
     attr_reader :name
-    attr_accessor :period
     attr_reader :pay_back_persons
 
-    def initialize(name, period = nil)
+    def initialize(name)
       raise(ArgumentError, 'Illegal nil or empty name', caller) if name.nil? || name.empty?
       @name = name
-      @period = period
     end
 
     # Returns the expenses made by this person.
@@ -39,14 +37,6 @@ module Kitty
     # FIXME destructive method
     def prefer_to_pay_back(*persons)
       @pay_back_persons = persons
-    end
-
-    def arrive()
-      @period = nil
-    end
-
-    def leave()
-      @period = nil
     end
 
     # +Visitor+ pattern : _Element_

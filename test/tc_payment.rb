@@ -1,7 +1,6 @@
 $:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'test/unit'
 require 'kitty'
-require 'date'
 
 module TestKitty
   class TestPayment < Test::Unit::TestCase
@@ -14,7 +13,6 @@ module TestKitty
       assert_same(@payer, @payment.payer)
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
-      assert_nil(@payment.date)
       assert_nil(@payment.included_persons_or_groups)
       assert_nil(@payment.excluded_persons_or_groups)
     end
@@ -26,7 +24,6 @@ module TestKitty
       assert_same(@payer, @payment.payer)
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
-      assert_nil(@payment.date)
       assert_equal(2, @payment.included_persons_or_groups.length)
       assert(@payment.included_persons_or_groups.include?(included0))
       assert(@payment.included_persons_or_groups.include?(included1))
@@ -39,7 +36,6 @@ module TestKitty
       assert_same(@payer, @payment.payer)
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
-      assert_nil(@payment.date)
       assert_equal(included, @payment.included_persons_or_groups)
       assert_nil(@payment.excluded_persons_or_groups)
     end
@@ -51,7 +47,6 @@ module TestKitty
       assert_same(@payer, @payment.payer)
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
-      assert_nil(@payment.date)
       assert_nil(@payment.included_persons_or_groups)
       assert_equal(2, @payment.excluded_persons_or_groups.length)
       assert(@payment.excluded_persons_or_groups.include?(excluded0))
@@ -64,20 +59,8 @@ module TestKitty
       assert_same(@payer, @payment.payer)
       assert_equal(10, @payment.amount)
       assert_equal('misc', @payment.purpose)
-      assert_nil(@payment.date)
       assert_nil(@payment.included_persons_or_groups)
       assert_equal(excluded, @payment.excluded_persons_or_groups)
-    end
-
-    def test_date
-      date = Date.new
-      @payment = Kitty::Payment.new(@payer, 10, :purpose => 'misc', :date => date)
-      assert_same(@payer, @payment.payer)
-      assert_equal(10, @payment.amount)
-      assert_equal('misc', @payment.purpose)
-      assert_same(date, @payment.date)
-      assert_nil(@payment.included_persons_or_groups)
-      assert_nil(@payment.excluded_persons_or_groups)
     end
 
     def teardown

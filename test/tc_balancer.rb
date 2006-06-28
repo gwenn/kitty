@@ -1,13 +1,12 @@
 $:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'test/unit'
 require 'kitty'
-require 'date'
 
 module TestKitty
   class TestBalancer < Test::Unit::TestCase
     def setup
       @trip = Kitty::Trip.new('Test')
-      @person0 = Kitty::Person.new('Person0', Date.new(2005, 9, 10)..Date.new(2005, 9, 25))
+      @person0 = Kitty::Person.new('Person0')
       @person1 = Kitty::Person.new('Person1')
       @person2 = Kitty::Person.new('Person2')
       @balancer = Kitty::Balancer.new
@@ -60,18 +59,6 @@ module TestKitty
       assert_amount(10, @balancer.total)
       assert_amount(10, @balancer.balances[@person0])
       assert_amount(-10, @balancer.balances[@person1])
-    end
-
-    def test_analyze_payment_with_date
-      @trip.add(@person0)
-      @trip.add(@person1)
-      @trip.add(@person2)
-      @person1.pay(10, :date => Date.new(2005, 9, 9))
-      @trip.accept(@balancer)
-      assert_amount(10, @balancer.total)
-      assert_amount(0, @balancer.balances[@person0])
-      assert_amount(5, @balancer.balances[@person1])
-      assert_amount(-5, @balancer.balances[@person2])
     end
 
     def test_analyze_payment_with_no_person
