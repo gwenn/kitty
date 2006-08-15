@@ -21,8 +21,9 @@ module Kitty
 
     # Adds one expense.
     def pay(amount, desc = 'stuff')
-      payments << Payment.new(self, amount, desc)
-      self
+      payment = Payment.new(self, amount, desc)
+      payments << payment
+      payment
     end
     alias :spend :pay
  
@@ -37,6 +38,7 @@ module Kitty
     # FIXME destructive method
     def prefer_to_pay_back(*persons)
       @pay_back_persons = persons
+      self
     end
 
     # +Visitor+ pattern : _Element_

@@ -26,7 +26,7 @@ module Kitty
     # 
     # <b>+name+ must be capitalized</b>.
     def person(name)
-      person = singleton_class.const_set(name, Kitty::Person.new(name))
+      person = create_person(name)
       current_trip << person
       person
     end

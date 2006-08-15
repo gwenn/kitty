@@ -39,36 +39,44 @@
 # Licensed under the same terms as Ruby.
 require 'kitty/dsl'
 
-if __FILE__ == $0
-  require 'optparse'
-  require 'rdoc/usage'
+module Kitty
+  module Main
+    def self.run
+      require 'optparse'
+      require 'rdoc/usage'
 
-  opts = OptionParser.new
-  opts.on('-h', '--help') { RDoc::usage }
-  begin
-    opts.parse(ARGV)
-  rescue => error
-    puts(error.message)
-    RDoc::usage('Usage')
-  end
-
-  unless ARGV.empty?
-    ARGV.each do |arg|
-      ctx = Kitty::Trick.new
-      File.open(arg) do |file|
-        #thr = Thread.new do
-          #ctx.taint
-          #file.taint
-          #$SAFE = 4
-          ctx.instance_eval(file.read, arg, 1)
-        #end
-        #thr.join
+      opts = OptionParser.new
+      opts.on('-h', '--help') { RDoc::usage }
+      begin
+        opts.parse(ARGV)
+      rescue => error
+        puts(error.message)
+        RDoc::usage('Usage')
       end
-    end
-  else
-    puts('Missing trip data')
-    RDoc::usage('Usage')
-  end
 
-  at_exit { puts('ByeBye...') }
+      unless ARGV.empty?
+        ARGV.each do |arg|
+          ctx = Kitty::Trick.new
+          File.open(arg) do |file|
+            #thr = Thread.new do
+              #ctx.taint
+              #file.taint
+              #$SAFE = 4
+              ctx.instance_eval(file.read, arg, 1)
+            #end
+            #thr.join
+          end
+        end
+      else
+        puts('Missing trip data')
+        RDoc::usage('Usage')
+      end
+
+      at_exit { puts('ByeBye...') }
+    end
+  end
+end
+
+if __FILE__ == $0
+  Kitty::Main.run
 end

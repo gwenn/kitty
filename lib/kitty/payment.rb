@@ -36,6 +36,23 @@ module Kitty
       end
     end
 
+    # FIXME Cannot be called several times to append users
+    def include(persons_or_groups)
+      @included_persons_or_groups = persons_or_groups
+      self
+    end
+
+    # FIXME Cannot be called several times to append users
+    def exclude(persons_or_groups)
+      @excluded_persons_or_groups = persons_or_groups
+      self
+    end
+
+    def for(purpose)
+      @purpose = purpose
+      self
+    end
+
     # +Visitor+ pattern : _Element_
     def accept(analyzer)
       analyzer.analyze_payment(self)
