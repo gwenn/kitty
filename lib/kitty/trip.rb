@@ -1,5 +1,5 @@
 # Copyright (c) 2005 El Barto.
-# 
+#
 # Licensed under the same terms as Ruby.
 require 'set'
 require 'kitty/apportioner'
@@ -77,7 +77,7 @@ module Kitty
         puts('  %s: %.2f' % [r[0].name, Payment.to_f(r[1])])
         check_sum += r[1]
       end
-      
+ 
       puts
       raise('Non-zero balance!') unless check_sum.abs.zero?
     end
@@ -99,5 +99,5 @@ module Kitty
       end
       puts
     end
-  end  
+  end
 end

@@ -38,7 +38,7 @@ module TestKitty
       assert_equal(5, payment.amount)
       assert_equal('misc', payment.purpose)
 
-      @person.pay(1).pay(2)
+      #@person.pay(1).pay(2)
     end
 
     def test_lend

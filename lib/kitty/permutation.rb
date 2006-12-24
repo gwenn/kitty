@@ -1,10 +1,10 @@
 # Copyright (c) 2005 El Barto.
-# 
+#
 # Licensed under the same terms as Ruby.
 
 module Kitty
   # See http://permutation.rubyforge.org (Florian Frank)
-  # But its factorial method does not work in $SAFE = 4 mode! 
+  # But its factorial method does not work in $SAFE = 4 mode!
   class Permutation
     def initialize(size)
       @size = size

@@ -1,5 +1,5 @@
 # Copyright (c) 2005 El Barto.
-# 
+#
 # Licensed under the same terms as Ruby.
 require 'kitty/personset'
 

@@ -1,5 +1,5 @@
 # Copyright (c) 2005 El Barto.
-# 
+#
 # Licensed under the same terms as Ruby.
 require 'mathn'
 require 'rational'
@@ -61,7 +61,7 @@ module Kitty
     def amount
       Payment.to_f(@amount)
     end
-    
+ 
     # Returns the integer form of the amount.
     # Indeed, all internal calculations are made with integers.
     def amount_i
@@ -77,5 +77,5 @@ module Kitty
     def Payment.to_i(amount)
       (amount * 10**PRECISION).to_i
     end
-  end  
+  end
 end

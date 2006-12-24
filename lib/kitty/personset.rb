@@ -1,5 +1,5 @@
 # Copyright (c) 2005 El Barto.
-# 
+#
 # Licensed under the same terms as Ruby.
 require 'set'
 require 'kitty/person'
@@ -24,7 +24,7 @@ module Kitty
       end
     end
     alias :<< :add
-    
+ 
     def delete(persons_or_groups)
       if persons_or_groups.is_a?(Kitty::Person) # FIXME Duck Typing!
         persons.delete(persons_or_groups)

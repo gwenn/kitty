@@ -1,7 +1,8 @@
 # == Synopsis
 #
 # Helps to keep Group accounting.
-# Original idea came from {Christian Neukirchen}[http://chneukirchen.org/blog/archive/2005/05/scripting-for-runaways.html].
+# Original idea came from
+# {Christian Neukirchen}[http://chneukirchen.org/blog/archive/2005/05/scripting-for-runaways.html].
 #
 # == Usage
 #    ruby kitty.rb [-h | --help] trip_data...
@@ -38,6 +39,7 @@
 # Copyright (c) 2005 El Barto.
 # Licensed under the same terms as Ruby.
 require 'kitty/dsl'
+require 'kitty/version'
 
 module Kitty
   module Main

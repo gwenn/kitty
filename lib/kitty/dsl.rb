@@ -1,5 +1,5 @@
 # Copyright (c) 2005 El Barto.
-# 
+#
 # Licensed under the same terms as Ruby.
 require 'kitty/group'
 require 'kitty/person'
@@ -11,7 +11,7 @@ module Kitty
     #end
 
     # Declares the current Trip.
-    # 
+    #
     # <b>+name+ must be capitalized</b>.
     def trip(name, *persons)
       trip = singleton_class.const_set(name, Kitty::Trip.new(name))
@@ -21,17 +21,18 @@ module Kitty
       end
       trip
     end
-    
+
     # Declares one Person taking part in the current trip.
-    # 
+    #
     # <b>+name+ must be capitalized</b>.
     def person(name)
       person = create_person(name)
       current_trip << person
       person
     end
-    
-    # Declares a sub-group of persons. This is useful when these persons have many expenses in common.
+ 
+    # Declares a sub-group of persons. This is useful when these persons have many expenses
+    # in common.
     #
     # <b>+name+ must be capitalized</b>.
     def group(name, *persons)
@@ -57,7 +58,7 @@ module Kitty
     def create_person(name)
       singleton_class.const_set(name, Kitty::Person.new(name))
     end
-    
+ 
     def current_trip
       unless singleton_class.const_defined?(:TRIP)
         warn('No trip defines! A default one is created.')

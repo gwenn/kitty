@@ -1,5 +1,5 @@
 # Copyright (c) 2005 El Barto.
-# 
+#
 # Licensed under the same terms as Ruby.
 require 'mathn'
 require 'rational'
@@ -8,7 +8,7 @@ require 'kitty/permutation'
 module Kitty
   # Balance for one Person.
   Balance = Struct.new('Balance', :person, :state)
-  
+ 
   # Divides up repayments in such a way that the number of repayments is minimal.
   # All optimal combinations are returns.
   class Apportioner
@@ -55,9 +55,10 @@ module Kitty
 
       repayments = optimize(credit_balances.collect { |c| c.state }, transfers,
                             debit_balances.collect { |d| d.state } )
-      [credit_balances.collect{ |c| c.person }, repayments, debit_balances.collect { |d| d.person } ]
+      [credit_balances.collect{ |c| c.person }, repayments,
+        debit_balances.collect { |d| d.person } ]
     end
-    
+ 
     private
     def optimize( credit_balances, transfers, debit_balances )
       perms = Permutation.new( debit_balances.size )
@@ -113,5 +114,5 @@ module Kitty
       end
       m_dup
     end
-  end  
+  end
 end

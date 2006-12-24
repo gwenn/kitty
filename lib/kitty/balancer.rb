@@ -1,5 +1,5 @@
 # Copyright (c) 2005 El Barto.
-# 
+#
 # Licensed under the same terms as Ruby.
 require 'mathn'
 require 'rational'
@@ -37,7 +37,8 @@ module Kitty
       else
         beneficiary_set << payment.included_persons_or_groups << payment.payer
       end
-      beneficiary_set.delete(payment.excluded_persons_or_groups) unless payment.excluded_persons_or_groups.nil?
+      beneficiary_set.delete(payment.excluded_persons_or_groups) unless payment.
+        excluded_persons_or_groups.nil?
       beneficiaries = beneficiary_set.persons
 =begin
       unless payment.date.nil?
